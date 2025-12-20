@@ -88,6 +88,12 @@ if(EMSCRIPTEN)
     )
 else()
     target_link_libraries(sdl3-synth PRIVATE SDL3::SDL3 OpenGL::GL libremidi::libremidi cjson)
+    
+    # Copy data directory to build directory as a post-build step
+    add_custom_command(TARGET sdl3-synth POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/data ${CMAKE_BINARY_DIR}/data
+        COMMENT "Copying data directory to build directory"
+    )
 endif()
 
 # Copy required DLLs to build directory (Windows only)
