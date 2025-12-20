@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no"/>
+    <title>SDL3 Synthesizer</title>
+    <style>
+      body {
+        font-family: arial;
+        margin: 0;
+        padding: none;
+        background: #1a1a1a;
+      }
+      .emscripten { 
+            position: absolute;
+            top: 0px;
+            left: 0px;
+            margin: 0px;
+            border: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            display: block;
+            image-rendering: optimizeSpeed;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: -o-crisp-edges;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: optimize-contrast;
+            image-rendering: crisp-edges;
+            image-rendering: pixelated;
+            -ms-interpolation-mode: nearest-neighbor;
+      }
+      div.emscripten { text-align: center; }
+      div.emscripten_border { border: none; }
+      /* canvas *must not* have any border or padding, or mouse coords will be wrong */
+      canvas.emscripten { border: 0px none; background-color: black; }
+      #status {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        color: white;
+        background: rgba(0,0,0,0.7);
+        padding: 10px;
+        border-radius: 5px;
+        font-family: monospace;
+        z-index: 1000;
+      }
+    </style>
+  </head>
+   <body>
+
+       <div id="status">Initializing...</div>
+
+       <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+
+       <script>
+         console.log('HTML loaded');
+         updateStatus('HTML loaded');
+
+         function updateStatus(message) {
+           document.getElementById('status').textContent = message;
+           console.log('Status: ' + message);
+         }
+       </script>
+
+       <script>
+         updateStatus('Loading sdl3-synth.js...');
+         var script = document.createElement('script');
+         script.src = 'sdl3-synth.js';
+         script.async = true;
+         script.onload = function() { 
+           updateStatus('sdl3-synth.js loaded successfully');
+         };
+         script.onerror = function() { 
+           updateStatus('ERROR: Failed to load sdl3-synth.js');
+           console.error('Failed to load sdl3-synth.js'); 
+         };
+         document.head.appendChild(script);
+       </script>
+
+        <script type='text/javascript'>
+          console.log('Module script starting');
+          updateStatus('Creating Module object...');
+
+          var Module = {
+           __libreMidi_currentInputs: [],
+           __libreMidi_currentOutputs: [],
+          preRun: [function() {
+            updateStatus('preRun starting...');
+            if (navigator.requestMIDIAccess) {
+              navigator.requestMIDIAccess({ sysex: false }).then(function(midiAccess) {
+                globalThis.__libreMidi_access = midiAccess;
+                
+                // Initialize inputs array for libremidi compatibility
+                Module.__libreMidi_currentInputs = [];
+                Module.__libreMidi_currentOutputs = [];
+                
+                if (midiAccess.inputs && midiAccess.inputs.size > 0) {
+                  midiAccess.inputs.forEach(function(input) {
+                    Module.__libreMidi_currentInputs.push(input);
+                    console.log('MIDI Input found: ' + input.name);
+                    updateStatus('MIDI Input: ' + input.name);
+                  });
+                }
+                
+                if (midiAccess.outputs && midiAccess.outputs.size > 0) {
+                  midiAccess.outputs.forEach(function(output) {
+                    Module.__libreMidi_currentOutputs.push(output);
+                    console.log('MIDI Output found: ' + output.name);
+                  });
+                }
+                
+                console.log('MIDI access granted');
+                updateStatus('MIDI access granted');
+              }).catch(function(e) {
+                console.log('MIDI support rejected, MIDI will not be available.', e);
+                updateStatus('MIDI not available');
+              });
+            } else {
+              console.log('WebMIDI is not supported in this browser.');
+              updateStatus('WebMIDI not supported');
+            }
+            updateStatus('preRun done');
+          }],
+          onRuntimeInitialized: function() {
+            console.log('Runtime initialized');
+            updateStatus('Runtime initialized');
+          },
+          postRun: [function() { 
+            console.log('postRun');
+            updateStatus('Application ready');
+            setTimeout(function() {
+              var status = document.getElementById('status');
+              if (status) status.style.display = 'none';
+            }, 3000);
+          }],
+          print: function(text) { 
+            console.log('stdout: ' + text);
+            updateStatus('stdout: ' + text);
+          },
+          printErr: function(text) { 
+            console.error('stderr: ' + text);
+            updateStatus('ERROR: ' + text);
+          },
+          locateFile: function(path, prefix) {
+            console.log('locateFile called for:', path, 'with prefix:', prefix);
+            updateStatus('Loading file: ' + path);
+            // Handle WebMIDI polling and async operations
+            if (path.includes('webmidi')) {
+              return prefix + path;
+            }
+            return prefix + path;
+          },
+          canvas: (function() {
+            console.log('Setting up canvas');
+            var canvas = document.getElementById('canvas');
+            // As a default initial behavior, pop up an alert when webgl context is lost. To make your
+            // application robust, you may want to override this behavior before shipping!
+            // See http://www.khronos.org/registry/webgl/specs/latest/1.0/#5.15.2
+            canvas.addEventListener("webglcontextlost", function(e) { alert('WebGL context lost. You will need to reload the page.'); e.preventDefault(); }, false);
+            return canvas;
+          })(),
+          setStatus: function(text) { 
+            console.log('SDL Status: ' + text);
+            updateStatus('SDL Status: ' + text);
+          },
+          totalDependencies: 3,
+          monitorRunDependencies: function(left) { 
+            console.log('Dependencies left: ' + left);
+            updateStatus('Dependencies left: ' + left); 
+            if (left === 0) {
+              console.log('All dependencies loaded');
+              updateStatus('All dependencies loaded - Starting main()');
+            }
+          }
+        };
+        console.log('Module object created:', Module);
+        updateStatus('Module created - Waiting for Emscripten...');
+      </script>
+    <!-- Script loaded dynamically above -->
+
+<script>
+  window.addEventListener('error', function(e) {
+    // Filter out less critical JavaScript errors to reduce console spam
+    if (e.error && e.error.message) {
+      var msg = e.error.message;
+      // Filter out common Web MIDI and Emscripten errors that are expected
+      if (msg.includes('Module._malloc') || msg.includes('libremidi') || 
+          msg.includes('inputs') || msg.includes('devices_poll')) {
+        console.warn('Expected Web MIDI error filtered:', msg);
+        return true; // Filter these errors
+      }
+      console.error('JavaScript error:', msg);
+    }
+    return false; // Don't filter other errors
+  });
+
+  window.addEventListener('unhandledrejection', function(e) {
+    // Filter out common MIDI promise rejections
+    if (e.reason && typeof e.reason === 'string') {
+      if (e.reason.includes('MIDI') || e.reason.includes('libremidi')) {
+        console.warn('Expected MIDI promise rejection filtered:', e.reason);
+        e.preventDefault(); // Prevent the rejection from being logged
+        return;
+      }
+    }
+    console.error('Unhandled promise rejection:', e.reason);
+    updateStatus('Promise Error: ' + e.reason);
+  });
+
+  setTimeout(function() {
+    console.log('5 second timeout - checking page state');
+    updateStatus('Application should be running now');
+    var canvas = document.getElementById('canvas');
+    if (canvas)
+      canvas.focus();
+  }, 5000);
+</script>
+
+  </body>
+</html>
