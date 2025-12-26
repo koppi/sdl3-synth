@@ -1,222 +1,197 @@
-<!doctype html>
+<!doctype HTML>
 <html lang="en-us">
   <head>
     <meta charset="utf-8">
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no"/>
-    <title>SDL3 Synthesizer</title>
+    <title>sdl3-synth</title>
     <style>
+      html {
+          width: 100%;
+          height: 100%;
+      }
       body {
-        font-family: arial;
-        margin: 0;
-        padding: none;
-        background: #1a1a1a;
+          display: -webkit-flex;
+          display: flex;
+          -webkit-flex-direction: column;
+          flex-direction: column;
+          width: 100%;
+          height: 100%;
+          font-family: sans-serif;
+          margin: 0;
+          padding: 0;
+          overflow: hidden;
       }
-      .emscripten { 
-            position: absolute;
-            top: 0px;
-            left: 0px;
-            margin: 0px;
-            border: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            display: block;
-            image-rendering: optimizeSpeed;
-            image-rendering: -moz-crisp-edges;
-            image-rendering: -o-crisp-edges;
-            image-rendering: -webkit-optimize-contrast;
-            image-rendering: optimize-contrast;
-            image-rendering: crisp-edges;
-            image-rendering: pixelated;
-            -ms-interpolation-mode: nearest-neighbor;
+      #canvas {
+          -webkit-flex: 1;
+          flex: 1;
+          width: 100%;
+          min-height: 10%;
       }
-      div.emscripten { text-align: center; }
-      div.emscripten_border { border: none; }
-      /* canvas *must not* have any border or padding, or mouse coords will be wrong */
-      canvas.emscripten { border: 0px none; background-color: black; }
       #status {
-        position: fixed;
-        top: 10px;
-        left: 10px;
-        color: white;
-        background: rgba(0,0,0,0.7);
-        padding: 10px;
-        border-radius: 5px;
-        font-family: monospace;
-        z-index: 1000;
+          background-color: hsl(60,20%,90%);
+          text-align: center;
+          height: 0;
+      }
+      #output {
+          background-color: hsla(240,10%,10%,0.0);
+          color: black;
+          border: none;
+          padding: 0 1em;
+          position: absolute;
+          right: 0; width: 1;
+          bottom: 0;
       }
     </style>
   </head>
-   <body>
+  <body>
+    <div id="status">Downloading...</div>
+    
+    <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
 
-       <div id="status">Initializing...</div>
-
-       <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
-
-       <script>
-         console.log('HTML loaded');
-         updateStatus('HTML loaded');
-
-         function updateStatus(message) {
-           document.getElementById('status').textContent = message;
-           console.log('Status: ' + message);
-         }
-       </script>
-
-       <script>
-         updateStatus('Loading sdl3-synth.js...');
-         var script = document.createElement('script');
-         script.src = 'sdl3-synth.js';
-         script.async = true;
-         script.onload = function() { 
-           updateStatus('sdl3-synth.js loaded successfully');
-         };
-         script.onerror = function() { 
-           updateStatus('ERROR: Failed to load sdl3-synth.js');
-           console.error('Failed to load sdl3-synth.js'); 
-         };
-         document.head.appendChild(script);
-       </script>
-
-        <script type='text/javascript'>
-          console.log('Module script starting');
-          updateStatus('Creating Module object...');
-
-          var Module = {
-           __libreMidi_currentInputs: [],
-           __libreMidi_currentOutputs: [],
-          preRun: [function() {
-            updateStatus('preRun starting...');
-            if (navigator.requestMIDIAccess) {
-              navigator.requestMIDIAccess({ sysex: false }).then(function(midiAccess) {
-                globalThis.__libreMidi_access = midiAccess;
-                
-                // Initialize inputs array for libremidi compatibility
-                Module.__libreMidi_currentInputs = [];
-                Module.__libreMidi_currentOutputs = [];
-                
-                if (midiAccess.inputs && midiAccess.inputs.size > 0) {
-                  midiAccess.inputs.forEach(function(input) {
-                    Module.__libreMidi_currentInputs.push(input);
-                    console.log('MIDI Input found: ' + input.name);
-                    updateStatus('MIDI Input: ' + input.name);
-                  });
-                }
-                
-                if (midiAccess.outputs && midiAccess.outputs.size > 0) {
-                  midiAccess.outputs.forEach(function(output) {
-                    Module.__libreMidi_currentOutputs.push(output);
-                    console.log('MIDI Output found: ' + output.name);
-                  });
-                }
-                
-                console.log('MIDI access granted');
-                updateStatus('MIDI access granted');
-              }).catch(function(e) {
-                console.log('MIDI support rejected, MIDI will not be available.', e);
-                updateStatus('MIDI not available');
-              });
-            } else {
-              console.log('WebMIDI is not supported in this browser.');
-              updateStatus('WebMIDI not supported');
-            }
-            updateStatus('preRun done');
-          }],
-          onRuntimeInitialized: function() {
-            console.log('Runtime initialized');
-            updateStatus('Runtime initialized');
-          },
-          postRun: [function() { 
-            console.log('postRun');
-            updateStatus('Application ready');
-            setTimeout(function() {
-              var status = document.getElementById('status');
-              if (status) status.style.display = 'none';
-            }, 3000);
-          }],
-          print: function(text) { 
-            console.log('stdout: ' + text);
-            updateStatus('stdout: ' + text);
-          },
-          printErr: function(text) { 
-            console.error('stderr: ' + text);
-            updateStatus('ERROR: ' + text);
-          },
-          locateFile: function(path, prefix) {
-            console.log('locateFile called for:', path, 'with prefix:', prefix);
-            updateStatus('Loading file: ' + path);
-            // Handle WebMIDI polling and async operations
-            if (path.includes('webmidi')) {
-              return prefix + path;
-            }
-            return prefix + path;
-          },
-          canvas: (function() {
-            console.log('Setting up canvas');
-            var canvas = document.getElementById('canvas');
-            // As a default initial behavior, pop up an alert when webgl context is lost. To make your
-            // application robust, you may want to override this behavior before shipping!
-            // See http://www.khronos.org/registry/webgl/specs/latest/1.0/#5.15.2
-            canvas.addEventListener("webglcontextlost", function(e) { alert('WebGL context lost. You will need to reload the page.'); e.preventDefault(); }, false);
-            return canvas;
+    <textarea id="output" rows="8"></textarea>
+    
+    <script type='text/javascript'>
+      // Global state for MIDI management
+      var g_state = {
+          webmidi: null,
+      };
+      
+      var Module = {
+          print: (function(text) {
+              var element = document.getElementById('output');
+              if (element) element.value = ''; // clear browser cache
+              return function(text) {
+                  if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+                  console.log(text);
+                  if (element) {
+                      element.value += text + "\n";
+                      element.scrollTop = element.scrollHeight; // focus on bottom
+                  }
+              };
           })(),
-          setStatus: function(text) { 
-            console.log('SDL Status: ' + text);
-            updateStatus('SDL Status: ' + text);
-          },
-          totalDependencies: 3,
-          monitorRunDependencies: function(left) { 
-            console.log('Dependencies left: ' + left);
-            updateStatus('Dependencies left: ' + left); 
-            if (left === 0) {
-              console.log('All dependencies loaded');
-              updateStatus('All dependencies loaded - Starting main()');
-            }
-          }
-        };
-        console.log('Module object created:', Module);
-        updateStatus('Module created - Waiting for Emscripten...');
-      </script>
-    <!-- Script loaded dynamically above -->
-
-<script>
-  window.addEventListener('error', function(e) {
-    // Filter out less critical JavaScript errors to reduce console spam
-    if (e.error && e.error.message) {
-      var msg = e.error.message;
-      // Filter out common Web MIDI and Emscripten errors that are expected
-      if (msg.includes('Module._malloc') || msg.includes('libremidi') || 
-          msg.includes('inputs') || msg.includes('devices_poll')) {
-        console.warn('Expected Web MIDI error filtered:', msg);
-        return true; // Filter these errors
-      }
-      console.error('JavaScript error:', msg);
-    }
-    return false; // Don't filter other errors
-  });
-
-  window.addEventListener('unhandledrejection', function(e) {
-    // Filter out common MIDI promise rejections
-    if (e.reason && typeof e.reason === 'string') {
-      if (e.reason.includes('MIDI') || e.reason.includes('libremidi')) {
-        console.warn('Expected MIDI promise rejection filtered:', e.reason);
-        e.preventDefault(); // Prevent the rejection from being logged
-        return;
-      }
-    }
-    console.error('Unhandled promise rejection:', e.reason);
-    updateStatus('Promise Error: ' + e.reason);
-  });
-
-  setTimeout(function() {
-    console.log('5 second timeout - checking page state');
-    updateStatus('Application should be running now');
-    var canvas = document.getElementById('canvas');
-    if (canvas)
-      canvas.focus();
-  }, 5000);
-</script>
-
+          printErr: function(text) { console.error(text); },
+          setStatus: (function(text) {
+              var element = document.getElementById('status');
+              if (element) element.textContent = ''; // clear browser cache
+              return function(text) { element.textContent = text; };
+          })(),
+          canvas: document.getElementById('canvas'),
+          preRun: [function() {
+              Module['canvas'].addEventListener('wheel', function(e) { e.preventDefault(); }, { passive: false });
+              Module['canvas'].addEventListener('touchstart', function(e) { e.preventDefault(); }, { passive: false });
+              Module['canvas'].addEventListener('touchmove', function(e) { e.preventDefault(); }, { passive: false });
+              
+              // Initialize WebMIDI with Firefox compatibility
+              function initializeWebMIDI() {
+                  // Check if Web MIDI API is available
+                  if (!navigator.requestMIDIAccess) {
+                      console.log('WebMIDI not supported in this browser');
+                      
+                      // Firefox-specific guidance
+                      if (navigator.userAgent.includes('Firefox')) {
+                          var firefoxMessage = document.createElement('div');
+                          firefoxMessage.style.cssText = 'position: fixed; top: 10px; left: 50%; transform: translateX(-50%); background: #ff9800; color: white; padding: 10px 20px; border-radius: 5px; z-index: 1000; font-family: sans-serif;';
+                          firefoxMessage.innerHTML = 'Firefox users: Enable Web MIDI by setting dom.webmidi.enabled to true in about:config and restarting Firefox';
+                          document.body.appendChild(firefoxMessage);
+                          
+                          // Auto-hide after 10 seconds
+                          setTimeout(function() { 
+                              if (firefoxMessage.parentNode) {
+                                  firefoxMessage.parentNode.removeChild(firefoxMessage);
+                              }
+                          }, 10000);
+                      }
+                      return;
+                  }
+                  
+                  // Request MIDI access with Firefox-compatible options
+                  var midiOptions = { 
+                      sysex: false,  // Firefox has limited sysex support
+                      software: true  // Request software synths if available
+                  };
+                  
+                  // Use user gesture for better compatibility
+                  function requestMIDIAccessWithUserGesture() {
+                      navigator.requestMIDIAccess(midiOptions)
+                          .then(function(midiAccess) {
+                              console.log('WebMIDI access granted successfully');
+                              Module.midiAccess = midiAccess;
+                              
+                              // Log available devices
+                              console.log('Available MIDI inputs:', midiAccess.inputs.size);
+                              
+                              // Add success notification
+                              showNotification('MIDI devices connected successfully!', 'success');
+                          })
+                          .catch(function(error) {
+                              console.error('WebMIDI access denied:', error);
+                              
+                              // Provide specific error messaging
+                              var errorMessage = error.name ? error.name : 'Unknown error';
+                              if (errorMessage === 'SecurityError') {
+                                  showNotification('MIDI access blocked. Please allow MIDI permissions in your browser settings.', 'error');
+                              } else if (errorMessage === 'NotAllowedError') {
+                                  showNotification('MIDI access denied by user. Please allow MIDI access when prompted.', 'warning');
+                              } else if (errorMessage === 'NotSupportedError') {
+                                  showNotification('Web MIDI not supported in this browser. Try Chrome or Edge.', 'error');
+                              } else {
+                                  showNotification('MIDI initialization failed: ' + errorMessage, 'error');
+                              }
+                          });
+                  }
+                  
+                  // Try immediate access first (works in Chrome/Edge)
+                  requestMIDIAccessWithUserGesture();
+                  
+                  // For Firefox and other browsers, also try on user interaction
+                  document.addEventListener('click', function requestOnFirstClick(e) {
+                      if (!Module.midiAccess) {
+                          requestMIDIAccessWithUserGesture();
+                      }
+                      document.removeEventListener('click', requestOnFirstClick);
+                  }, { once: true });
+              }
+              
+              // Notification helper function
+              function showNotification(message, type) {
+                  var notification = document.createElement('div');
+                  var bgColor = type === 'success' ? '#4caf50' : 
+                               type === 'warning' ? '#ff9800' : 
+                               type === 'error' ? '#f44336' : '#2196f3';
+                  
+                  notification.style.cssText = 'position: fixed; top: 60px; left: 50%; transform: translateX(-50%); background: ' + bgColor + '; color: white; padding: 12px 24px; border-radius: 6px; z-index: 1001; font-family: sans-serif; font-size: 14px; box-shadow: 0 2px 10px rgba(0,0,0,0.3); transition: opacity 0.3s;';
+                  notification.textContent = message;
+                  
+                  document.body.appendChild(notification);
+                  
+                  // Auto-hide after 5 seconds
+                  setTimeout(function() { 
+                      notification.style.opacity = '0';
+                      setTimeout(function() { 
+                          if (notification.parentNode) {
+                              notification.parentNode.removeChild(notification);
+                          }
+                      }, 300);
+                  }, 5000);
+              }
+              
+              // Initialize WebMIDI
+              initializeWebMIDI();
+          }],
+          postRun: [function() {
+              // Enhanced initialization sequence
+              setTimeout(function() {
+                  console.log('WebMIDI initialization delay completed');
+                  
+                  // Check if module loaded properly
+                  if (typeof Module !== 'undefined' && Module.midiInitialized) {
+                      console.log('Module and MIDI properly initialized');
+                  } else {
+                      console.warn('Module or MIDI initialization may be incomplete');
+                  }
+              }, 2000);
+          }]
+      };
+    </script>
+    <script async type="text/javascript" src="sdl3-synth.js"></script>
   </body>
 </html>

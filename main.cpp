@@ -508,6 +508,89 @@ void handleNoteOff(int midiNote) {
     }
 }
 
+#ifdef EMSCRIPTEN
+// JavaScript-callable MIDI callback function
+extern "C" void midiCallbackFromJS(unsigned char* data, int length, int inputIndex) {
+    std::lock_guard<std::mutex> lock(g_synthMutex);
+    
+    if (length == 0) return;
+    
+    int status = data[0] & 0xF0;
+    int midiNote = (length >= 2) ? data[1] : 0;
+    int vel = (length >= 3) ? data[2] : 0;
+    
+    // Debug output for incoming MIDI packets
+    std::cout << "MIDI: [";
+    for (int i = 0; i < length; i++) {
+        std::cout << std::hex << (int)data[i];
+        if (i < length - 1) std::cout << " ";
+    }
+    std::cout << std::dec << "] status=0x" << std::hex << status << std::dec 
+              << " note=" << midiNote << " vel=" << vel << " input=" << inputIndex << std::endl;
+    
+    // Process MIDI message the same way as libremidi
+    int voiceIndex = -1;
+    
+    // Pitch Bend
+    if (status == 0xE0) {
+        if (length >= 3) {
+            int lsb = data[1];
+            int msb = data[2];
+            int value = (msb << 7) | lsb;
+            g_synth.pitchBend = (value - 8192.0f) / 8192.0f;
+        }
+        return;
+    }
+    
+    // Control Change (for Mod Wheel)
+    if (status == 0xB0) {
+        if (length >= 3) {
+            int controller = data[1];
+            if (controller == 1) { // Modulation Wheel
+                g_synth.modWheelValue = data[2] / 127.0f;
+            }
+        }
+        return;
+    }
+    
+    // Only process Note On (0x90) and Note Off (0x80) from here
+    if (status != 0x90 && status != 0x80) return;
+    
+    // Note On
+    if (status == 0x90 && vel > 0) {
+        // Allocate voice using round-robin
+        int nVoices = (int)g_synth.voices.size();
+        voiceIndex = g_roundRobinIndex.fetch_add(1) % nVoices;
+        
+        // Check if this voice was playing another note and clean up
+        int oldMidiNote = g_synth.voices[voiceIndex].getMidiNote();
+        if (oldMidiNote != -1) {
+            auto it = g_synth.noteToVoice.find(oldMidiNote);
+            if (it != g_synth.noteToVoice.end() && it->second == voiceIndex) {
+                g_synth.noteToVoice.erase(it);
+            }
+            g_synth.voices[voiceIndex].noteOff();
+        }
+        
+        g_synth.voices[voiceIndex].noteOn(midiNote, vel);
+        g_synth.noteToVoice[midiNote] = voiceIndex;
+    }
+    // Note Off
+    else if (status == 0x80 || (status == 0x90 && vel == 0)) {
+        auto it = g_synth.noteToVoice.find(midiNote);
+        if (it != g_synth.noteToVoice.end()) {
+            voiceIndex = it->second;
+            if (voiceIndex >= 0 && voiceIndex < (int)g_synth.voices.size()) {
+                if (g_synth.voices[voiceIndex].getMidiNote() == midiNote) {
+                    g_synth.voices[voiceIndex].noteOff();
+                }
+            }
+            g_synth.noteToVoice.erase(it);
+        }
+    }
+}
+#endif
+
 // MIDI callback function
 void midiCallback(const libremidi::message& message, void* userData) {
     std::lock_guard<std::mutex> lock(g_synthMutex);
@@ -878,73 +961,6 @@ int main(int argc, char* argv[]) {
     try {
         std::cout << "Initializing Web MIDI..." << std::endl;
         
-#ifdef EMSCRIPTEN
-        // Create Web MIDI observer callbacks
-        libremidi::observer_configuration callbacks{
-            .input_added =
-                [&](const libremidi::input_port& id) {
-                std::cout << "MIDI Input connected: " << id.port_name << std::endl;
-                
-                // Create port data for this input
-                g_midi_port_data.push_back({.portNumber = (unsigned int)g_midi_port_data.size(), 
-                                           .portName = id.port_name});
-                
-                auto conf = libremidi::input_configuration{
-                    .on_message = [&, portIndex = g_midi_port_data.size() - 1](const libremidi::message& msg) { 
-                        midiCallback(msg, &g_midi_port_data[portIndex]); 
-                    }
-                };
-                
-                auto& input = g_midi_inputs.emplace_back(
-                    std::make_unique<libremidi::midi_in>(conf, libremidi::emscripten_input_configuration{}));
-                input->open_port(id);
-            },
-            
-            .input_removed =
-                [&](const libremidi::input_port& id) {
-                std::cout << "MIDI Input removed: " << id.port_name << std::endl;
-                // Find and remove the corresponding input
-                auto it = std::find_if(g_midi_port_data.begin(), g_midi_port_data.end(),
-                                      [&id](const PortData& pd) { return pd.portName == id.port_name; });
-                if (it != g_midi_port_data.end()) {
-                    auto index = std::distance(g_midi_port_data.begin(), it);
-                    g_midi_inputs.erase(g_midi_inputs.begin() + index);
-                    g_midi_port_data.erase(it);
-                }
-            }
-        };
-
-        // Create Web MIDI observer
-        libremidi::observer obs{
-            std::move(callbacks), libremidi::observer_configuration_for(libremidi::API::WEBMIDI)};
-        
-        // Wait a bit for MIDI access to be granted from HTML side
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        
-        // Get all existing input ports and open them
-        auto input_ports = obs.get_input_ports();
-        std::cout << "Found " << input_ports.size() << " Web MIDI input ports:" << std::endl;
-        
-        for (const auto& port : input_ports) {
-            std::cout << "  Opening Web MIDI Input: " << port.port_name << std::endl;
-            
-            // Create port data for this input
-            g_midi_port_data.push_back({.portNumber = (unsigned int)g_midi_port_data.size(), 
-                                       .portName = port.port_name});
-            
-            auto conf = libremidi::input_configuration{
-                .on_message = [&, portIndex = g_midi_port_data.size() - 1](const libremidi::message& msg) { 
-                    midiCallback(msg, &g_midi_port_data[portIndex]); 
-                }
-            };
-            
-            auto& input = g_midi_inputs.emplace_back(
-                std::make_unique<libremidi::midi_in>(conf, libremidi::emscripten_input_configuration{}));
-            input->open_port(port);
-        }
-        
-        std::cout << "Web MIDI observer initialized - monitoring for device changes..." << std::endl;
-#else
         // Create observer callbacks
         libremidi::observer_configuration callbacks{
             .input_added =
@@ -981,8 +997,13 @@ int main(int argc, char* argv[]) {
         };
 
         // Create observer to detect MIDI devices
+#ifdef __EMSCRIPTEN__
+        libremidi::observer obs{
+            std::move(callbacks), libremidi::observer_configuration_for(libremidi::API::WEBMIDI)};
+#else
         libremidi::observer obs{
             std::move(callbacks), libremidi::observer_configuration_for(libremidi::API::UNSPECIFIED)};
+#endif
         
         // Get all existing input ports and open them
         auto input_ports = obs.get_input_ports();
@@ -1007,7 +1028,6 @@ int main(int argc, char* argv[]) {
         }
         
         std::cout << "MIDI observer initialized - monitoring for device changes..." << std::endl;
-#endif
         
     } catch (const std::exception& e) {
         std::cerr << "Failed to initialize Web MIDI: " << e.what() << std::endl;
@@ -1037,7 +1057,8 @@ int main(int argc, char* argv[]) {
     Preset::load("default_preset.json"); // Load default preset at startup
 #endif
 	
-    g_melody.startMelody(); // Start melody at app startup
+	g_melody.startMelody(); // Start melody at app startup
+	std::cout << "Melody started - should play automatically" << std::endl;
 
     while (!quit) {
         uint64_t currentTime = SDL_GetPerformanceCounter();

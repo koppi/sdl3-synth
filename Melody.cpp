@@ -122,7 +122,9 @@ void Melody::resetMelody() {
 }
 
 void Melody::updateMelodyPlayback(uint64_t currentTime, float perfFreq, Synthesizer& synth, std::atomic<int>& roundRobinIndex) {
-    if (!melodyPlaying) return;
+    if (!melodyPlaying) {
+        return;
+    }
 
     // Handle scheduled note-offs
     processScheduledNoteOffs(currentTime, synth);

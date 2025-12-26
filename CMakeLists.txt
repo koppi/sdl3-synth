@@ -84,11 +84,18 @@ if(EMSCRIPTEN)
         COMMENT "Copying data directory to build directory"
     )
     
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lGL -s DISABLE_EXCEPTION_CATCHING=0 -s MIN_WEBGL_VERSION=2 -s MAX_WEBGL_VERSION=2 -s WASM=1 -s USE_WEBGL2=1 -s USE_GLFW=3 -s FULL_ES3=1 -s ASYNCIFY=1 -s ASYNCIFY_IMPORTS=['emscripten_sleep'] -s EXPORTED_RUNTIME_METHODS=['ccall','cwrap','HEAPU8'] -s EXPORTED_FUNCTIONS=['_malloc','_free','_libremidi_devices_poll','libremidi_devices_input'] -s ALLOW_MEMORY_GROWTH=1 -s FORCE_FILESYSTEM=0 -s EXIT_RUNTIME=1 -O2 --preload-file data ")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lGL -s DISABLE_EXCEPTION_CATCHING=0 -s MIN_WEBGL_VERSION=2 -s MAX_WEBGL_VERSION=2 -s WASM=1 -s USE_WEBGL2=1 -s USE_GLFW=3 -s FULL_ES3=1 -s ASYNCIFY=1 -s ASYNCIFY_IMPORTS=['emscripten_sleep'] -s EXPORTED_RUNTIME_METHODS=['ccall','cwrap','HEAPU8'] -s EXPORTED_FUNCTIONS=['_malloc','_free','_libremidi_devices_poll','libremidi_devices_input'] -s ALLOW_MEMORY_GROWTH=1 -s FORCE_FILESYSTEM=0 -s EXIT_RUNTIME=1 -O2 --preload-file data --pre-js pre.js")
     target_link_libraries(sdl3-synth PRIVATE SDL3::SDL3 cjson libremidi::libremidi)
     add_custom_command(TARGET sdl3-synth POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/index.html ${CMAKE_BINARY_DIR}/index.html
       )
+
+  add_custom_command(TARGET sdl3-synth PRE_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    ${CMAKE_SOURCE_DIR}/pre.js
+    ${CMAKE_BINARY_DIR}/pre.js
+    COMMENT "Copying pre.js to build directory"
+  )
 
   add_custom_command(TARGET sdl3-synth POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
