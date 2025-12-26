@@ -1,6 +1,6 @@
 
 cmake_minimum_required(VERSION 3.10)
-project(Sdl3-Synth CXX)
+project(sdl3-synth CXX)
 
 set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS ON CACHE INTERNAL "" FORCE)
 set(CMAKE_CXX_STANDARD 20)
@@ -26,6 +26,9 @@ FetchContent_Declare(
 )
 set(SDL_SHARED OFF)
 set(SDL_STATIC ON)
+set(SDL_STATIC_PIC ON)
+set(SDL_TEST OFF)
+set(SDL_TESTS OFF)
 FetchContent_MakeAvailable(SDL3)
 
 FetchContent_Declare(
@@ -49,7 +52,7 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/DaveGamble/cJSON.git
     GIT_TAG        master
     GIT_SHALLOW 1
-    CMAKE_ARGS -DENABLE_CUSTOM_COMPILER_FLAGS=ON -DENABLE_CJSON_TEST=OFF -DENABLE_CJSON_UTILS=OFF -DBUILD_TESTS=OFF -DENABLE_CJSON_TEST=OFF
+    CMAKE_ARGS -DENABLE_CUSTOM_COMPILER_FLAGS=ON -DENABLE_CJSON_UTILS=OFF -DBUILD_TESTS=OFF -DENABLE_CJSON_TEST=OFF
 )
 set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 FetchContent_MakeAvailable(cjson)
@@ -60,7 +63,7 @@ if(EMSCRIPTEN)
 endif()
 
 if(TARGET cjson)
-    target_compile_options(cjson PRIVATE -Wno-error -Wno-long-long -DENABLE_CUSTOM_COMPILER_FLAGS=OFF -DENABLE_CJSON_TEST=OFF -DENABLE_CJSON_UTILS=OFF)
+    target_compile_options(cjson PRIVATE -Wno-error -Wno-long-long -DENABLE_CUSTOM_COMPILER_FLAGS=ON -DENABLE_CJSON_TEST=OFF -DENABLE_CJSON_UTILS=OFF)
 endif()
 
 if(NOT EMSCRIPTEN)
@@ -81,12 +84,27 @@ if(EMSCRIPTEN)
         COMMENT "Copying data directory to build directory"
     )
     
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lGL -s DISABLE_EXCEPTION_CATCHING=0 -s MIN_WEBGL_VERSION=2 -s MAX_WEBGL_VERSION=2 -s WASM=1 -s USE_WEBGL2=1 -s USE_GLFW=3 -s FULL_ES3=1 -s ASYNCIFY=1 -s ASYNCIFY_IMPORTS=['emscripten_sleep'] -s EXPORTED_RUNTIME_METHODS=['ccall','cwrap'] -s EXPORTED_FUNCTIONS=['_malloc','_free'] -s ALLOW_MEMORY_GROWTH=1 -s FORCE_FILESYSTEM=0 -s EXIT_RUNTIME=1 -O2 --preload-file data ")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lGL -s DISABLE_EXCEPTION_CATCHING=0 -s MIN_WEBGL_VERSION=2 -s MAX_WEBGL_VERSION=2 -s WASM=1 -s USE_WEBGL2=1 -s USE_GLFW=3 -s FULL_ES3=1 -s ASYNCIFY=1 -s ASYNCIFY_IMPORTS=['emscripten_sleep'] -s EXPORTED_RUNTIME_METHODS=['ccall','cwrap','HEAPU8'] -s EXPORTED_FUNCTIONS=['_malloc','_free','_libremidi_devices_poll','libremidi_devices_input'] -s ALLOW_MEMORY_GROWTH=1 -s FORCE_FILESYSTEM=0 -s EXIT_RUNTIME=1 -O2 --preload-file data ")
     target_link_libraries(sdl3-synth PRIVATE SDL3::SDL3 cjson libremidi::libremidi)
     add_custom_command(TARGET sdl3-synth POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/index.html ${CMAKE_BINARY_DIR}/index.html
-    )
-else()
+      )
+
+  add_custom_command(TARGET sdl3-synth POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    ${CMAKE_SOURCE_DIR}/index.html
+    ${CMAKE_BINARY_DIR}/index.html
+    COMMENT "Copying index.html to build directory"
+  )
+      
+  add_custom_command(TARGET sdl3-synth POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    ${CMAKE_SOURCE_DIR}/favicon.ico
+    ${CMAKE_BINARY_DIR}/favicon.ico
+    COMMENT "Copying favicon.ico to build directory"
+  )
+
+  else()
     target_link_libraries(sdl3-synth PRIVATE SDL3::SDL3 OpenGL::GL libremidi::libremidi cjson)
     
     # Copy data directory to build directory as a post-build step
