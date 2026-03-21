@@ -1338,11 +1338,10 @@ int main(int argc, char* argv[]) {
             ImGui::Separator();
             ImGui::Text("Presets");
             static int currentPreset = 0;
-            if (ImGui::Combo("Preset", &currentPreset, [](void* data, int idx, const char** out_text) {
-                std::vector<std::string>* files = (std::vector<std::string>*)data;
-                if (idx < 0 || idx >= (int)files->size()) return false;
-                *out_text = (*files)[idx].c_str();
-                return true;
+            if (ImGui::Combo("Preset", &currentPreset, [](void* data, int idx) -> const char* {
+                auto* files = static_cast<std::vector<std::string>*>(data);
+                if (idx < 0 || idx >= static_cast<int>(files->size())) return nullptr;
+                return (*files)[idx].c_str();
             }, &presetFiles, presetFiles.size())) {
                 strcpy(g_presetFilename, presetFiles[currentPreset].c_str());
             }
