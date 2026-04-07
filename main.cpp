@@ -1338,13 +1338,24 @@ int main(int argc, char* argv[]) {
             ImGui::Separator();
             ImGui::Text("Presets");
             static int currentPreset = 0;
-            if (ImGui::Combo("Preset", &currentPreset, [](void* data, int idx, const char** out_text) {
-                std::vector<std::string>* files = (std::vector<std::string>*)data;
-                if (idx < 0 || idx >= (int)files->size()) return false;
-                *out_text = (*files)[idx].c_str();
-                return true;
-            }, &presetFiles, presetFiles.size())) {
-                strcpy(g_presetFilename, presetFiles[currentPreset].c_str());
+            static std::vector<const char*> presetNames;
+            static bool presetNamesNeedUpdate = true;
+            if (presetNamesNeedUpdate || presetFiles.size() != presetNames.size()) {
+                presetNames.clear();
+                for (const auto& file : presetFiles) {
+                    presetNames.push_back(file.c_str());
+                }
+                presetNamesNeedUpdate = false;
+            }
+            if (!presetNames.empty()) {
+                if (currentPreset >= (int)presetNames.size()) currentPreset = 0;
+                if (ImGui::Combo("Preset", &currentPreset, [](void* data, int idx) -> const char* {
+                    const char** files = static_cast<const char**>(data);
+                    if (idx < 0) return nullptr;
+                    return files[idx];
+                }, presetNames.data(), (int)presetNames.size())) {
+                    strcpy(g_presetFilename, presetFiles[currentPreset].c_str());
+                }
             }
             if (ImGui::Button("Save")) {
                 Preset::save(g_presetFilename);
