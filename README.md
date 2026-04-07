@@ -2,6 +2,10 @@
 
 `sdl3-synth` is a powerful, real-time polyphonic synthesizer built in C++ using SDL3 for low-latency audio output and Dear ImGui for an intuitive graphical interface. It features a rich set of synthesis capabilities, including multi-oscillator voices, advanced filtering, extensive effects processing, and full MIDI control. Designed for musicians and sound designers, it offers deep customization for creating diverse sounds from classic analog emulations to modern experimental textures.
 
+![GitHub last commit](https://img.shields.io/github/last-commit/koppi/sdl3-synth)
+![GitHub commit activity](https://img.shields.io/github/commit-activity/w/koppi/sdl3-synth)
+[![GitHub issues](https://img.shields.io/github/issues/koppi/sdl3-synth)](https://github.com/koppi/sdl3-synth/issues)
+
 ## Screenshot
 
 ![Screenshot of sdl3-synth](screenshot.png)
