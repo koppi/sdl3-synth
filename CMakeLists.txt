@@ -29,6 +29,7 @@ set(SDL_STATIC ON)
 set(SDL_STATIC_PIC ON)
 set(SDL_TEST OFF)
 set(SDL_TESTS OFF)
+set(SDL_X11_XTEST OFF)
 FetchContent_MakeAvailable(SDL3)
 
 FetchContent_Declare(
