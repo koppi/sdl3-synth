@@ -23,8 +23,16 @@ override_dh_auto_install:
 	install -Dm644 data/xkcd-script.ttf debian/sdl3-synth/usr/share/sdl3-synth/xkcd-script.ttf
 	install -Dm644 LICENSE.txt debian/sdl3-synth/usr/share/doc/sdl3-synth/copyright
 	mkdir -p debian/sdl3-synth/usr/lib/sdl3-synth
-	install -Dm755 build/_deps/libremidi-build/liblibremidi.so* debian/sdl3-synth/usr/lib/sdl3-synth/
-	install -Dm755 build/_deps/cjson-build/libcjson.so* debian/sdl3-synth/usr/lib/sdl3-synth/
+	if ls build/_deps/libremidi-build/liblibremidi.so 1>/dev/null 2>&1; then \
+		cp -a build/_deps/libremidi-build/liblibremidi.so debian/sdl3-synth/usr/lib/sdl3-synth/; \
+	else \
+		cp -a build/_deps/libremidi-build/liblibremidi.a debian/sdl3-synth/usr/lib/sdl3-synth/; \
+	fi
+	if ls build/_deps/cjson-build/libcjson.so 1>/dev/null 2>&1; then \
+		cp -a build/_deps/cjson-build/libcjson.so debian/sdl3-synth/usr/lib/sdl3-synth/; \
+	else \
+		cp -a build/_deps/cjson-build/libcjson.a debian/sdl3-synth/usr/lib/sdl3-synth/; \
+	fi
 
 override_dh_strip:
 	dh_strip -psdl3-synth --exclude=usr/lib/sdl3-synth
