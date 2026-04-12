@@ -14,9 +14,9 @@ jobs:
       matrix:
         include:
           - os: ubuntu-24.04
-            apt-packages: libsdl3-dev libgl-dev libasound2-dev libpulse-dev
+            apt-packages: libgl-dev libasound2-dev libpulse-dev
           - os: ubuntu-22.04
-            apt-packages: libsdl3-dev libgl-dev libasound2-dev libpulse-dev
+            apt-packages: libgl-dev libasound2-dev libpulse-dev
           - os: macos-14
             brew-packages: sdl3
           - os: windows-latest
@@ -67,7 +67,7 @@ jobs:
         run: |
           apt-get update
           apt-get install -y cmake ninja-build pkg-config git \
-            libsdl3-dev libgl-dev libasound2-dev libpulse-dev \
+            libgl-dev libasound2-dev libpulse-dev \
             libjack-jackd2-dev debhelper-compat dh-sequence dh-exec
 
       - name: Build package
