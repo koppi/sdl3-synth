@@ -4,9 +4,26 @@ Priority: optional
 Maintainer: Jakob Flierl <jakob.flierl@gmail.com>
 Build-Depends: cmake,
                pkg-config,
+               ninja-build,
                libgl-dev,
                libasound2-dev,
                libpulse-dev,
+               libjack-dev,
+               libsndio-dev,
+               libx11-dev,
+               libxrandr-dev,
+               libxcursor-dev,
+               libxfixes-dev,
+               libxi-dev,
+               libxtst-dev,
+               libxkbcommon-dev,
+               libdrm-dev,
+               libgbm-dev,
+               libgl1-mesa-dev,
+               libgles2-mesa-dev,
+               libegl1-mesa-dev,
+               libdbus-1-dev,
+               libudev-dev,
                git
 Standards-Version: 4.6.0
 Homepage: https://github.com/koppi/sdl3-synth
