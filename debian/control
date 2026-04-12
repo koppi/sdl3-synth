@@ -1,0 +1,23 @@
+Source: sdl3-synth
+Section: sound
+Priority: optional
+Maintainer: Jakob Flierl <jakob.flierl@gmail.com>
+Build-Depends: cmake,
+               pkg-config,
+               libsdl3-dev,
+               libgl-dev,
+               libasound2-dev,
+               libpulse-dev,
+               git
+Standards-Version: 4.6.0
+Homepage: https://github.com/koppi/sdl3-synth
+Vcs-Git: https://github.com/koppi/sdl3-synth.git
+Vcs-Browser: https://github.com/koppi/sdl3-synth
+
+Package: sdl3-synth
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Real-time polyphonic synthesizer
+ sdl3-synth is a powerful, real-time polyphonic synthesizer built in C++ using
+ SDL3 for low-latency audio output and Dear ImGui for an intuitive graphical
+ interface.

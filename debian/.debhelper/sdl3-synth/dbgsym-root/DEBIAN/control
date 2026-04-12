@@ -1,0 +1,12 @@
+Package: sdl3-synth-dbgsym
+Source: sdl3-synth
+Version: 1.0.0-1
+Auto-Built-Package: debug-symbols
+Architecture: amd64
+Maintainer: koppi <koppi@example.com>
+Installed-Size: 1537
+Depends: sdl3-synth (= 1.0.0-1)
+Section: debug
+Priority: optional
+Description: debug symbols for sdl3-synth
+Build-Ids: 677818419e13c798d9e999167f2a94a92059a0d4
