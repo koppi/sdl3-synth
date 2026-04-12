@@ -54,8 +54,7 @@ jobs:
       - name: Build package
         run: |
           apt update
-          apt -y install dpkg-dev devscripts cmake pkg-config libgl-dev libasound2-dev libpulse-dev
-          ln -sf . debian/sdl3-synth
+          apt -y install ${{ matrix.apt-packages }}
           dpkg-buildpackage -us -uc -b
 
       - name: Upload .deb packages
