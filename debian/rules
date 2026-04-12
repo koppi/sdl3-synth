@@ -12,7 +12,8 @@ override_dh_auto_configure:
 		-DSDL_STATIC=ON \
 		-DSDL_STATIC_PIC=ON \
 		-DSDL_TEST=OFF \
-		-DSDL_TESTS=OFF
+		-DSDL_TESTS=OFF \
+		-DSDL_X11_XSCRNSAVER=OFF
 
 override_dh_auto_build:
 	cmake --build build -j$$(nproc)
