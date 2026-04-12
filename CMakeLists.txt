@@ -44,6 +44,7 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/atsushieno/libremidi.git
     GIT_TAG        master
     GIT_SHALLOW 1
+    CMAKE_ARGS -DLIBREMIDI_USE_WinRT=OFF
 )
 FetchContent_MakeAvailable(libremidi)
 
