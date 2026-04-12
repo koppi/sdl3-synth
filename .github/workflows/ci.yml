@@ -17,8 +17,6 @@ jobs:
             apt-packages: build-essential git make pkg-config cmake ninja-build gnome-desktop-testing libasound2-dev libpulse-dev libaudio-dev libfribidi-dev libjack-dev libsndio-dev libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxtst-dev libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev libthai-dev
           - os: macos-14
             brew-packages: sdl3
-          - os: windows-latest
-            choco-packages: ''
     steps:
       - uses: actions/checkout@v4
 
@@ -44,14 +42,6 @@ jobs:
         with:
           name: ${{ runner.os }}-build
           path: build/sdl3-synth
-          retention-days: 7
-
-      - name: Upload artifact (Windows)
-        if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v4
-        with:
-          name: Windows-build
-          path: build/Release/sdl3-synth.exe
           retention-days: 7
 
   deb-package:
@@ -96,12 +86,6 @@ jobs:
           name: macOS-build
           path: macos
 
-      - name: Download Windows artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: Windows-build
-          path: windows
-
       - name: Download Debian packages
         uses: actions/download-artifact@v4
         with:
@@ -113,13 +97,11 @@ jobs:
           chmod +x linux/sdl3-synth
           tar -czvf sdl3-synth-linux-x86_64.tar.gz -C linux sdl3-synth
           tar -czvf sdl3-synth-macos.tar.gz -C macos sdl3-synth
-          7z a sdl3-synth-windows.zip windows/sdl3-synth.exe
 
       - name: Create checksums
         run: |
           sha256sum sdl3-synth-linux-x86_64.tar.gz > SHA256SUMS
           sha256sum sdl3-synth-macos.tar.gz >> SHA256SUMS
-          sha256sum sdl3-synth-windows.zip >> SHA256SUMS
           sha256sum debian/*.deb >> SHA256SUMS
 
       - name: Create Release
@@ -128,7 +110,6 @@ jobs:
           files: |
             sdl3-synth-linux-x86_64.tar.gz
             sdl3-synth-macos.tar.gz
-            sdl3-synth-windows.zip
             debian/*.deb
             SHA256SUMS
           generate_release_notes: true
