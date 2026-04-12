@@ -41,4 +41,4 @@ override_dh_missing:
 	dh_missing --fail-missing
 
 override_dh_shlibdeps:
-	dh_shlibdeps -psdl3-synth -l debian/sdl3-synth/usr/lib/sdl3-synth
+	dh_shlibdeps -psdl3-synth -l debian/sdl3-synth/usr/lib/sdl3-synth -x usr/lib/sdl3-synth
