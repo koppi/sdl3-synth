@@ -53,6 +53,7 @@ jobs:
 
       - name: Build package
         run: |
+          apt update
           apt -y install dpkg-dev devscripts
           ln -sf . debian/sdl3-synth
           dpkg-buildpackage -us -uc -b
