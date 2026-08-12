@@ -158,7 +158,7 @@ For both native and web versions, connect a MIDI device for full control over no
 - [SDL3](https://github.com/libsdl-org/SDL) - Simple DirectMedia Layer 3
 - [cJSON](https://github.com/DaveGamble/cJSON) - Ultralightweight JSON parser in ANSI C
 - [Dear ImGui](https://github.com/ocornut/imgui) - Bloat-free Immediate Mode Graphical User interface for C++
-- [libremidi](https://github.com/atsushieno/libremidi) - A modern, cross-platform C++ MIDI library
+- [libremidi](https://github.com/celtera/libremidi) - A modern, cross-platform C++ MIDI library
 
 ## Contributing
 
