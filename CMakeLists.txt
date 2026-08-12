@@ -45,7 +45,7 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/celtera/libremidi.git
     GIT_TAG        master
     GIT_SHALLOW 1
-    CMAKE_ARGS -DLIBREMIDI_USE_WinRT=OFF -DLIBREMIDI_NO_WINUWP=ON
+    CMAKE_ARGS -DLIBREMIDI_USE_WinRT=OFF -DLIBREMIDI_NO_WINUWP=ON -DLIBREMIDI_JACK=OFF
 )
 FetchContent_MakeAvailable(libremidi)
 
