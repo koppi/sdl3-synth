@@ -35,9 +35,6 @@ class SynthVst3;
  */
 class SynthEditor : public Steinberg::CPluginView,
                     public Steinberg::ITimerCallback
-#if SMTG_OS_LINUX
-                    , public Steinberg::Linux::ITimerHandler
-#endif
 {
 public:
 	explicit SynthEditor (SynthVst3& processor);
@@ -54,11 +51,6 @@ public:
 	//---from Steinberg::ITimerCallback (framebuffer driven by a Timer)--------
 	void onTimer (Steinberg::Timer* timer) SMTG_OVERRIDE;
 
-#if SMTG_OS_LINUX
-	//---from Steinberg::Linux::ITimerHandler---------------------------------
-	void PLUGIN_API onTimer () SMTG_OVERRIDE;
-#endif
-
 	// Called by the processor before it is destroyed: from then on the editor
 	// must not talk to the processor anymore. The engine stays alive because
 	// the editor holds a reference to it.
@@ -67,9 +59,6 @@ public:
 	//---Interface------------------------------------------------------------
 	OBJ_METHODS (SynthEditor, CPluginView)
 	DEFINE_INTERFACES
-#if SMTG_OS_LINUX
-		DEF_INTERFACE (Steinberg::Linux::ITimerHandler)
-#endif
 	END_DEFINE_INTERFACES (CPluginView)
 	REFCOUNT_METHODS (CPluginView)
 

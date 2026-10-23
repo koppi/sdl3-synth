@@ -327,26 +327,6 @@ void SynthEditor::closeWindow ()
 //------------------------------------------------------------------------
 void SynthEditor::startTimer ()
 {
-#if defined(__linux__)
-	// Prefer the host run loop: it delivers callbacks on the host's UI thread,
-	// which is where the OpenGL context lives.
-	if (plugFrame)
-	{
-		Linux::IRunLoop* loop = nullptr;
-		if (plugFrame->queryInterface (Linux::IRunLoop::iid, reinterpret_cast<void**> (&loop)) ==
-		        kResultOk &&
-		    loop)
-		{
-			runLoop = loop;
-			if (runLoop->registerTimer (this, 1000 / 60) == kResultTrue)
-			{
-				runLoopTimerRegistered = true;
-				return;
-			}
-			runLoop.reset ();
-		}
-	}
-#endif
 	// Fall back to the SDK timer where the platform supports it.
 	timer = Timer::create (this, 1000 / 60);
 	if (timer)
@@ -360,13 +340,6 @@ void SynthEditor::startTimer ()
 //------------------------------------------------------------------------
 void SynthEditor::stopTimer ()
 {
-	if (runLoopTimerRegistered && runLoop)
-	{
-		runLoop->unregisterTimer (this);
-		runLoopTimerRegistered = false;
-	}
-	runLoop.reset ();
-
 	if (timer)
 	{
 		timer->stop ();
@@ -402,13 +375,7 @@ void SynthEditor::onTimer (Timer* /*timer*/)
 	tick ();
 }
 
-#if SMTG_OS_LINUX
-//------------------------------------------------------------------------
-void PLUGIN_API SynthEditor::onTimer ()
-{
-	tick ();
-}
-#endif
+
 
 //------------------------------------------------------------------------
 void SynthEditor::tick ()
