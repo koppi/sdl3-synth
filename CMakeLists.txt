@@ -142,6 +142,9 @@ add_executable(sdl3-synth WIN32 main.cpp ${SDL3_SYNTH_CORE_SOURCES})
 
 if(MSVC)
     target_compile_definitions(sdl3-synth PRIVATE _USE_MATH_DEFINES _CRT_SECURE_NO_WARNINGS)
+    if(TARGET SDL3::SDL3main)
+        target_link_libraries(sdl3-synth PRIVATE SDL3::SDL3main)
+    endif()
 endif()
 
 if(EMSCRIPTEN)
