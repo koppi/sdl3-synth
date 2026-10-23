@@ -235,22 +235,26 @@ if(SDL3_SYNTH_BUILD_VST3)
     )
 
     # ImGui's bundled OpenGL loader guesses the GL library to resolve from by
-    # inspecting what the host process already has loaded; inside a plug-in that
-    # can pick eglGetProcAddress() for a GLX context and yield dummy entry
-    # points (shader compilation then fails). We link the GL library directly,
-    # so declare the real entry points instead -- for this target only.
-    if(MSVC)
-        set(SDL3_SYNTH_FORCE_INCLUDE_FLAG "/FI${CMAKE_CURRENT_SOURCE_DIR}/vst3/gl_loader.h")
-    else()
-        set(SDL3_SYNTH_FORCE_INCLUDE_FLAG "-include" "${CMAKE_CURRENT_SOURCE_DIR}/vst3/gl_loader.h")
+    # inspecting what the hosting process already has loaded; inside a plug-in
+    # that can pick eglGetProcAddress() for a GLX context and yield dummy entry
+    # points (shader compilation then fails). We link the GL library directly on
+    # Unix, so declare the real entry points instead -- for this target only.
+    # On Windows the GL functions beyond 1.1 are not exported by opengl32.dll
+    # and must be loaded at runtime, so ImGui's own loader (imgl3w) is used.
+    if(NOT WIN32)
+        if(MSVC)
+            set(SDL3_SYNTH_FORCE_INCLUDE_FLAG "/FI${CMAKE_CURRENT_SOURCE_DIR}/vst3/gl_loader.h")
+        else()
+            set(SDL3_SYNTH_FORCE_INCLUDE_FLAG "-include" "${CMAKE_CURRENT_SOURCE_DIR}/vst3/gl_loader.h")
+        endif()
+        set_source_files_properties(
+            ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
+            TARGET_DIRECTORY SDL3Synth
+            PROPERTIES
+                COMPILE_DEFINITIONS "IMGUI_IMPL_OPENGL_LOADER_CUSTOM"
+                COMPILE_OPTIONS "${SDL3_SYNTH_FORCE_INCLUDE_FLAG}"
+        )
     endif()
-    set_source_files_properties(
-        ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
-        TARGET_DIRECTORY SDL3Synth
-        PROPERTIES
-            COMPILE_DEFINITIONS "IMGUI_IMPL_OPENGL_LOADER_CUSTOM"
-            COMPILE_OPTIONS "${SDL3_SYNTH_FORCE_INCLUDE_FLAG}"
-    )
 
     smtg_target_configure_version_file(SDL3Synth)
 
