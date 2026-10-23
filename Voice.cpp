@@ -11,6 +11,10 @@ Voice::Voice() : midiNote(-1), lastUsed(0), mixLevel(1.0f), unisonCount(0), unis
     for (int i=0;i<3;++i) { vcoMix[i]=1.0f/3.0f; vcoDetune[i]=0.0f; vcoPhaseMs[i]=0.0f; vcoPan[i]=0.0f; }
 }
 
+void Voice::setSampleRate(float rate) {
+    for (int i = 0; i < 3; ++i) oscs[i].setSampleRate(rate);
+}
+
 void Voice::noteOn(int note, float velocity) {
     midiNote = note;
     baseFrequency = midiNoteToFrequency(note);

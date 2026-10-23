@@ -59,6 +59,18 @@ This project uses CMake for its build system and supports both native (desktop) 
 - CMake 3.15 or higher
 - Node.js (for serving the web app)
 
+### VST3 Plug-in
+
+The build also produces a VST3 plug-in (`SDL3Synth.vst3`) by default. It can be disabled with `-DSDL3_SYNTH_BUILD_VST3=OFF`.
+
+To install the plug-in, copy the built bundle to your VST3 folder:
+
+- Linux: `~/.vst3/`
+- macOS: `~/Library/Audio/Plug-Ins/VST3/`
+- Windows: `C:\Program Files\Common Files\VST3\`
+
+Pre-built bundles for all three platforms are attached to each GitHub release.
+
 ### Native Build Steps
 
 1. **Clone the repository:**

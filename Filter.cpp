@@ -1,6 +1,6 @@
 #include "Filter.h"
 
-Filter::Filter() : cutoff(1000.0f), resonance(0.707f), drive(1.0f), inertial(0.0f), oversampling(0), sampleRate(48000.0f), smoothedCutoff(1000.0f), smoothedResonance(0.707f), b0(1.0f), b1(0.0f), b2(0.0f), a1(0.0f), a2(0.0f), x1(0.0f), x2(0.0f), y1(0.0f), y2(0.0f) {
+Filter::Filter() : cutoff(1000.0f), resonance(0.707f), drive(1.0f), inertial(0.0f), oversampling(0), sampleRate(48000.0f), smoothedCutoff(1000.0f), smoothedResonance(0.707f), lastCutoff(-1.0f), lastResonance(-1.0f), b0(1.0f), b1(0.0f), b2(0.0f), a1(0.0f), a2(0.0f), x1(0.0f), x2(0.0f), y1(0.0f), y2(0.0f) {
     updateCoefficients();
 }
 
@@ -36,8 +36,6 @@ float Filter::process(float input) {
     smoothedResonance = alpha * smoothedResonance + (1.0f - alpha) * resonance;
 
     // Update coefficients if needed (only when parameters change significantly)
-    static float lastCutoff = -1.0f;
-    static float lastResonance = -1.0f;
     if (fabs(smoothedCutoff - lastCutoff) > 1.0f || fabs(smoothedResonance - lastResonance) > 0.01f) {
         lastCutoff = smoothedCutoff;
         lastResonance = smoothedResonance;

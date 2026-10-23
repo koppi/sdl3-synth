@@ -7,9 +7,14 @@
 #include <cmath>
 #include <complex>
 
-Oscillator::Oscillator() : frequency(440.0f), amplitude(0.0f), phase(0.0f), waveformType(SINE),
+Oscillator::Oscillator() : frequency(440.0f), amplitude(0.0f), phase(0.0f), sampleRate(44100.0f), waveformType(SINE),
                            envelopeState(OFF), attackTime(0.01f), decayTime(0.1f), sustainLevel(0.5f), releaseTime(0.2f),
-                           envelopeLevel(0.0f), startTime(0.0f), releaseStartTime(0.0f), releaseStartLevel(0.0f), noteOnPerformanceCounter(0), phaseOffsetSec(0.0f), pulseWidth(0.5f), pitchShiftSemitones(0.0f), detuneCents(0.0f), pitchBend(0.0f), lfoMod(0.0f), randState(22222u) {}
+                           envelopeLevel(0.0f), envelopeSamples(0), stageStartSample(0), releaseStartLevel(0.0f), noteOnPerformanceCounter(0), phaseOffsetSec(0.0f), pulseWidth(0.5f), pitchShiftSemitones(0.0f), detuneCents(0.0f), pitchBend(0.0f), lfoMod(0.0f), randState(22222u) {}
+
+void Oscillator::setSampleRate(float rate) {
+    if (rate > 0.0f) sampleRate = rate;
+}
+float Oscillator::getSampleRate() const { return sampleRate; }
 
 void Oscillator::setFrequency(float freq) { frequency = freq; }
 void Oscillator::setAmplitude(float amp) { amplitude = amp; }
@@ -43,7 +48,8 @@ float Oscillator::getReleaseTime() const { return releaseTime; }
 
 void Oscillator::noteOn(float initialAmplitude) {
     envelopeState = ATTACK;
-    startTime = SDL_GetPerformanceCounter() / (float)SDL_GetPerformanceFrequency();
+    stageStartSample = envelopeSamples;
+    envelopeLevel = 0.0f;
     amplitude = initialAmplitude; // Store the initial amplitude from MIDI velocity
     noteOnPerformanceCounter = SDL_GetPerformanceCounter(); // Record note on time
 }
@@ -51,14 +57,14 @@ void Oscillator::noteOn(float initialAmplitude) {
 void Oscillator::noteOff() {
     if (envelopeState != OFF) {
         envelopeState = RELEASE;
-        releaseStartTime = SDL_GetPerformanceCounter() / (float)SDL_GetPerformanceFrequency();
+        stageStartSample = envelopeSamples;
         releaseStartLevel = envelopeLevel; // Store current envelopeLevel for release phase
     }
 }
 
 float Oscillator::generateSample() {
     float sample = 0.0f;
-    float t = (phase / SAMPLE_RATE) + phaseOffsetSec; // Time in seconds with phase offset
+    float t = (phase / sampleRate) + phaseOffsetSec; // Time in seconds with phase offset
 
     // compute effective frequency with pitch shift and detune (optimized: avoid std::pow)
     float finalPitchMod = pitchShiftSemitones + pitchBend + lfoMod;
@@ -99,67 +105,62 @@ float Oscillator::generateSample() {
         }
     }
 
-    // Apply ADSR envelope
-    float currentTime = SDL_GetPerformanceCounter() / (float)SDL_GetPerformanceFrequency();
-    float elapsedTime = 0.0f;
+    // Apply ADSR envelope (sample based so it follows the host sample rate)
+    float elapsedTime = (envelopeSamples - stageStartSample) / sampleRate;
 
     switch (envelopeState) {
         case OFF:
             envelopeLevel = 0.0f;
             break;
         case ATTACK:
-            elapsedTime = currentTime - startTime;
-            if (attackTime == 0) { // Instant attack
+            if (attackTime <= 0.0f) { // Instant attack
                 envelopeLevel = 1.0f;
             } else {
                 envelopeLevel = std::min(1.0f, elapsedTime / attackTime);
             }
-              if (elapsedTime >= attackTime) {
-                  envelopeState = DECAY;
-                  startTime = currentTime; // Reset startTime for decay phase
-              }
+            if (elapsedTime >= attackTime) {
+                envelopeState = DECAY;
+                stageStartSample = envelopeSamples;
+            }
             break;
         case DECAY:
-            elapsedTime = currentTime - startTime;
-            if (decayTime == 0) { // Instant decay
+            if (decayTime <= 0.0f) { // Instant decay
                 envelopeLevel = sustainLevel;
-            }
-            else {
+            } else {
                 envelopeLevel = std::max(sustainLevel, 1.0f - (elapsedTime / decayTime) * (1.0f - sustainLevel));
             }
-              if (elapsedTime >= decayTime) {
-                  envelopeState = SUSTAIN;
-              }
+            if (elapsedTime >= decayTime) {
+                envelopeState = SUSTAIN;
+            }
             break;
         case SUSTAIN:
             envelopeLevel = sustainLevel;
             break;
         case RELEASE:
-            elapsedTime = currentTime - releaseStartTime;
-            if (releaseTime == 0) { // Instant release
+            if (releaseTime <= 0.0f) { // Instant release
                 envelopeLevel = 0.0f;
             } else {
-                // Calculate release from releaseStartLevel
                 envelopeLevel = std::max(0.0f, releaseStartLevel - (elapsedTime / releaseTime) * releaseStartLevel);
             }
-              if (elapsedTime >= releaseTime || envelopeLevel <= 0.001f) { // Fade to near zero
-                  envelopeState = OFF;
-                  envelopeLevel = 0.0f;
-             }
+            if (elapsedTime >= releaseTime || envelopeLevel <= 0.001f) { // Fade to near zero
+                envelopeState = OFF;
+                envelopeLevel = 0.0f;
+            }
             break;
     }
 
     phase += 1.0f;
-    if (phase >= SAMPLE_RATE) {
-        phase -= SAMPLE_RATE;
+    if (phase >= sampleRate) {
+        phase -= sampleRate;
     }
+    ++envelopeSamples;
 
     return sample * amplitude * envelopeLevel;
 }
 
 float Oscillator::generateSampleDetuned(float extraDetuneCents, float phaseOffsetSeconds) const {
     // compute local phase without modifying internal state
-    float localPhase = phase / SAMPLE_RATE + phaseOffsetSec + phaseOffsetSeconds; // seconds
+    float localPhase = phase / sampleRate + phaseOffsetSec + phaseOffsetSeconds; // seconds
     float combinedCents = detuneCents + extraDetuneCents;
     float finalPitchMod = pitchShiftSemitones + pitchBend + lfoMod;
     float effFreq = frequency * std::exp(finalPitchMod * 0.0577622650466621f) * std::exp(combinedCents * 0.00057807807701174f);

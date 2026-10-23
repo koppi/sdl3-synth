@@ -105,5 +105,8 @@ struct Synthesizer {
     float autoGainGainL, autoGainGainR; // current smoothed gain
     float autoGainRMSL, autoGainRMSR; // current smoothed RMS
 
+    float sampleRate;
+
     Synthesizer();
+    void setSampleRate(float rate);
 };

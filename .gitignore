@@ -1,3 +1,4 @@
 build/
+build_*/
 default_preset.json
 imgui.ini

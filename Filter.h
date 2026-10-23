@@ -35,6 +35,8 @@ private:
     // Smoothing state
     float smoothedCutoff;
     float smoothedResonance;
+    float lastCutoff;
+    float lastResonance;
 
     // Filter coefficients
     float b0, b1, b2, a1, a2;

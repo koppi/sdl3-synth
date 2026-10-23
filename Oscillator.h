@@ -7,12 +7,22 @@
 #include <algorithm>
 #include <complex>
 
+// The VST3 SDK propagates a -DRELEASE=1 compile flag (its Release-config marker)
+// to every target that links it. It clashes with the envelope state below, so
+// drop it here; the SDK only uses it inside its own sources.
+#ifdef RELEASE
+#undef RELEASE
+#endif
+
 class Oscillator {
 public:
     enum WaveformType { SINE, SQUARE, SAW, TRIANGLE, SAW_UP, SAW_DOWN, PULSE, RANDOM };
     enum EnvelopeState { OFF, ATTACK, DECAY, SUSTAIN, RELEASE };
 
     Oscillator();
+
+    void setSampleRate(float rate);
+    float getSampleRate() const;
 
     void setFrequency(float freq);
     void setAmplitude(float amp);
@@ -65,6 +75,7 @@ private:
     float frequency;
     float amplitude;
     float phase;
+    float sampleRate;
     WaveformType waveformType;
 
     EnvelopeState envelopeState;
@@ -73,10 +84,10 @@ private:
     float sustainLevel;
     float releaseTime;
     float envelopeLevel;
-    float startTime;
-    float releaseStartTime;
-    float releaseStartLevel; // New: envelope level at the start of release
-    uint64_t noteOnPerformanceCounter; // New: SDL_GetPerformanceCounter() when noteOn was called
+    uint64_t envelopeSamples;     // sample clock used for ADSR timing
+    uint64_t stageStartSample;    // sample clock value when the current stage started
+    float releaseStartLevel;      // envelope level at the start of release
+    uint64_t noteOnPerformanceCounter; // SDL_GetPerformanceCounter() when noteOn was called
 
     // new
     float phaseOffsetSec; // seconds

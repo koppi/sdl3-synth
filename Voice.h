@@ -9,6 +9,8 @@ class Voice {
 public:
     Voice();
 
+    void setSampleRate(float rate);
+
     void noteOn(int note, float velocity);
     void noteOff();
 

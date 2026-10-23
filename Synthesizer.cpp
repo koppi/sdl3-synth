@@ -1,7 +1,8 @@
 #include "Synthesizer.h"
 #include "Utils.h"
+#include <algorithm>
 
-Synthesizer::Synthesizer() : masterVolume(1.0f), pan(0.0f),
+Synthesizer::Synthesizer() : sampleRate(44100.0f), masterVolume(1.0f), pan(0.0f),
                              unisonCount(1), unisonSpreadIndex(0),
                               pitchBend(0.0f), pitchBendRange(2.0f), modWheelValue(0.0f), modLfoPhase(0.0f), modLfoRate(5.0f),
                               filterEnabled(true),
@@ -18,21 +19,34 @@ Synthesizer::Synthesizer() : masterVolume(1.0f), pan(0.0f),
     const int NUM_VOICES = 8; // Set to 8 voices
     voices.resize(NUM_VOICES);
 
+    setSampleRate(SAMPLE_RATE);
+}
+
+void Synthesizer::setSampleRate(float rate) {
+    if (rate <= 0.0f) return;
+    sampleRate = rate;
+
+    for (auto& voice : voices) voice.setSampleRate(rate);
+
     // allocate delay buffer (max 3s)
-    int maxDelaySec = 3;
-    delayMaxSamples = SAMPLE_RATE * maxDelaySec;
+    const int maxDelaySec = 3;
+    delayMaxSamples = std::max(1, (int)(sampleRate * maxDelaySec));
     delayBufferL.assign(delayMaxSamples, 0.0f);
     delayBufferR.assign(delayMaxSamples, 0.0f);
+    delayIndexL = delayIndexR = 0;
 
     // flanger small buffer (100ms)
-    flangerBufferL.assign(SAMPLE_RATE / 10, 0.0f);
-    flangerBufferR.assign(SAMPLE_RATE / 10, 0.0f);
+    const int flangerSamples = std::max(1, (int)(sampleRate / 10));
+    flangerBufferL.assign(flangerSamples, 0.0f);
+    flangerBufferR.assign(flangerSamples, 0.0f);
+    flangerIndexL = flangerIndexR = 0;
 
     // reverb buffer (2s)
-    reverbMaxSamples = SAMPLE_RATE * 2;
+    reverbMaxSamples = std::max(1, (int)(sampleRate * 2));
     reverbBufferL.assign(reverbMaxSamples, 0.0f);
     reverbBufferR.assign(reverbMaxSamples, 0.0f);
+    reverbIndexL = reverbIndexR = 0;
 
     // filter
-    filter.setSampleRate(SAMPLE_RATE);
+    filter.setSampleRate(sampleRate);
 }
