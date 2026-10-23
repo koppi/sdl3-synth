@@ -298,6 +298,9 @@ if(SDL3_SYNTH_BUILD_VST3)
         ${SDL3_SYNTH_VST3_CJSON_TARGET}
         ${CMAKE_DL_LIBS}
     )
+    if(WIN32)
+        target_link_libraries(SDL3Synth PRIVATE opengl32)
+    endif()
 
     # The plug-in must not depend on libraries from the build tree.
     set_target_properties(SDL3Synth PROPERTIES

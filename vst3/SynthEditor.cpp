@@ -402,11 +402,13 @@ void SynthEditor::onTimer (Timer* /*timer*/)
 	tick ();
 }
 
+#if SMTG_OS_LINUX
 //------------------------------------------------------------------------
 void PLUGIN_API SynthEditor::onTimer ()
 {
 	tick ();
 }
+#endif
 
 //------------------------------------------------------------------------
 void SynthEditor::tick ()
