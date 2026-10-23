@@ -339,4 +339,16 @@ if(SDL3_SYNTH_BUILD_VST3)
             COMMENT "Copying plug-in runtime DLLs"
         )
     endif()
+
+    # On Windows with the MSVC toolchain, SDL3 is built as a shared library by
+    # default, so the plug-in needs SDL3.dll next to it for the SDK validator
+    # (which runs as a post-build step) to be able to load the module.
+    if(WIN32 AND NOT MINGW AND TARGET SDL3::SDL3)
+        add_custom_command(TARGET SDL3Synth PRE_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                $<TARGET_FILE:SDL3::SDL3>
+                $<TARGET_FILE_DIR:SDL3Synth>
+            COMMENT "Copying SDL3.dll next to the plug-in"
+        )
+    endif()
 endif()
