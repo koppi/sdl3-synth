@@ -33,6 +33,9 @@ jobs:
             os: windows-2022
             # The default Visual Studio generator is used on Windows.
             generator-args: ''
+            # Build SDL3 (and the plug-in's other deps) statically so the VST3
+            # bundle does not depend on SDL3.dll at runtime.
+            cmake-args: '-DSDL_SHARED=OFF -DSDL_STATIC=ON -DSDL_STATIC_PIC=ON -DSDL_TEST=OFF -DSDL_TESTS=OFF'
     steps:
       - uses: actions/checkout@v5
 
