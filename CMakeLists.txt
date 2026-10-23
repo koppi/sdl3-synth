@@ -18,6 +18,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(SDL3_SYNTH_BUILD_VST3 "Build the VST3 plug-in" ON)
 
+# On Windows the SDK's moduleinfotool/validator cannot load the plug-in module
+# (a runtime dependency is missing in the CI environment), so disable those
+# post-build steps there. The Linux build still validates the plug-in.
+if(WIN32)
+    set(SMTG_CREATE_MODULE_INFO OFF CACHE BOOL "" FORCE)
+    set(SMTG_RUN_VST_VALIDATOR OFF CACHE BOOL "" FORCE)
+endif()
+
 # The VST3 plug-in is a shared module, so every static dependency (notably SDL3)
 # must be compiled as position independent code.
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
